@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>4-in-1 Exercise</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" hidden>
+    <span id="hud-time">0:00</span>
+    <span id="hud-target"></span>
+    <span class="hint">Esc = pause</span>
+  </div>
+
+  <div id="menu" class="overlay">
+    <div class="panel">
+      <p class="back"><a href="../index.html">← All exercises</a></p>
+      <h1>4-in-1 Exercise</h1>
+      <p class="lead">Four tasks at once. Practise them one at a time by turning the others off.</p>
+
+      <div class="tasks">
+        <label class="check"><input type="checkbox" id="task-balance" checked>
+          <span><b>Balance</b> Keep the square standing on its corner by moving the mouse left and right.</span></label>
+        <label class="check"><input type="checkbox" id="task-towers" checked>
+          <span><b>Towers</b> Press <kbd>Space</kbd> when a red square turns towards the middle.</span></label>
+        <label class="check"><input type="checkbox" id="task-colors" checked>
+          <span><b>Colours</b> Press <kbd>Space</kbd> when the top row has exactly the colours you were given.</span></label>
+        <label class="check"><input type="checkbox" id="task-audio" checked>
+          <span><b>Numbers</b> Press <kbd>Enter</kbd> when the second sequence is the first one reversed.</span></label>
+      </div>
+
+      <div class="grid">
+        <label>Duration
+          <select id="opt-duration">
+            <option value="120">2 minutes</option>
+            <option value="180" selected>3 minutes</option>
+            <option value="300">5 minutes</option>
+            <option value="600">10 minutes</option>
+          </select>
+        </label>
+        <label>Difficulty
+          <select id="opt-difficulty">
+            <option value="easy">Easy</option>
+            <option value="normal" selected>Normal</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label class="wide">Voice
+          <span class="row">
+            <select id="opt-voice"></select>
+            <button id="test-voice" type="button">Test</button>
+          </span>
+        </label>
+        <label class="check"><input type="checkbox" id="opt-show-target"> Keep colour target visible</label>
+        <label class="check"><input type="checkbox" id="opt-invert"> Invert mouse</label>
+        <label class="check"><input type="checkbox" id="opt-feedback" checked> Show hits and misses</label>
+      </div>
+
+      <p id="voice-warning" class="warning" hidden></p>
+
+      <button id="start" class="primary">Start</button>
+
+      <div id="history"></div>
+    </div>
+  </div>
+
+  <div id="briefing" class="overlay" hidden>
+    <div class="panel small">
+      <h2>Your colour pattern</h2>
+      <div id="briefing-target" class="target"></div>
+      <p class="lead">Press <kbd>Space</kbd> whenever the top row has exactly these colours, in any order.</p>
+      <div id="briefing-count" class="count"></div>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay" hidden>
+    <div class="panel small">
+      <h2>Paused</h2>
+      <button id="resume" class="primary">Resume</button>
+      <button id="quit">Quit to menu</button>
+    </div>
+  </div>
+
+  <div id="results" class="overlay" hidden>
+    <div class="panel small">
+      <h2>Results</h2>
+      <div id="results-body"></div>
+      <button id="again" class="primary">Play again</button>
+      <button id="to-menu">Menu</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

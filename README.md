@@ -26,3 +26,23 @@ wing tip as the speed wanders. Use the throttle to keep it hidden.
 When a round ends you see the percentage of time the dot was inside the
 circle, the wings were level (within ±5°) and the speed vector was hidden.
 Recent results are saved in your browser.
+
+## 4-in-1 Exercise (`four-in-one/`)
+
+Four tasks at once. Each one can be turned off in the menu to practise it
+alone.
+
+- **Balance:** a two-coloured square stands on one corner and keeps tipping
+  over. Move the mouse left or right (the bar below the square shows where)
+  towards the side it tips to, to keep it upright.
+- **Towers:** red squares run down the towers on both sides. Sometimes one
+  turns towards the middle at the halfway point. Press `Space` when it does.
+- **Colours:** you get a colour pattern at the start, for example "2 red,
+  1 blue". Press `Space` when the row at the top has exactly that many of
+  those colours, in any order.
+- **Numbers:** a Finnish voice reads four digits, then four more. Press
+  `Enter` if the second sequence is the first one reversed.
+
+The voice uses the browser's built-in speech. Microsoft Edge has Finnish
+voices built in. Chrome on Windows has one only if Finnish is added in the
+Windows language settings.
