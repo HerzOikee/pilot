@@ -1,14 +1,17 @@
-# Bird Game
+# Pilot Training
 
-A training game for the pilot school entrance exam. A dot wanders slowly
-around the screen. Use a joystick to keep the dot inside the circle while
-keeping the circle's "wings" level as they lean randomly from side to side.
-A speed vector sticks up or down from the right wing tip as the speed
-wanders. Use the throttle to keep it hidden.
+Training apps for the pilot school entrance exam. Play them at
+**https://herzoikee.github.io/pilot/**, or open `index.html` in a browser
+(Chrome, Edge or Firefox). No installation needed.
 
-## Play
+Each app lives in its own folder, and `index.html` at the top links to them.
 
-Open `index.html` in a browser (Chrome, Edge or Firefox). No installation needed.
+## Bird Game (`bird-game/`)
+
+A dot wanders slowly around the screen. Use a joystick to keep the dot
+inside the circle while keeping the circle's "wings" level as they lean
+randomly from side to side. A speed vector sticks up or down from the right
+wing tip as the speed wanders. Use the throttle to keep it hidden.
 
 - **Joystick:** plug it in and press any button so the browser detects it.
   The stick moves the circle. Pick which axis tilts the wings in the menu.
@@ -21,5 +24,5 @@ Open `index.html` in a browser (Chrome, Edge or Firefox). No installation needed
 - `Esc` pauses.
 
 When a round ends you see the percentage of time the dot was inside the
-circle, the wings were level (within ±5°) and the speed vector was hidden. Recent results are saved in
-your browser.
+circle, the wings were level (within ±5°) and the speed vector was hidden.
+Recent results are saved in your browser.
