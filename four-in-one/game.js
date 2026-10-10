@@ -54,9 +54,8 @@ const TARGET_VISIBLE = 8;  // seconds a new pattern stays on screen
 const TARGET_EVERY_MIN = 40;
 const TARGET_EVERY_MAX = 60;
 
-// Numbers, read one digit at a time.
+// Numbers.
 const DIGIT_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
-const DIGIT_GAP = 1.0;     // seconds of silence between digits
 const AUDIO_PAUSE = 2.5;   // seconds between the two sequences
 const AUDIO_ANSWER = 5;    // seconds to answer after the second sequence
 const REVERSED_CHANCE = 0.45;
@@ -148,7 +147,7 @@ function say(text, onDone) {
   const voice = selectedVoice();
   if (voice) u.voice = voice;
   u.lang = voice ? voice.lang : 'en-US';
-  u.rate = 0.85;
+  u.rate = 0.9;
   u.onend = onDone;
   u.onerror = onDone;
   speech.speak(u);
@@ -372,8 +371,21 @@ function newSequences() {
   return { first, second, isReversed: false };
 }
 
+// Reads all four digits in one go and moves on when the voice finishes.
 function startSequence(stage, digits) {
-  Object.assign(game.audio, { stage, digits, idx: 0, speaking: false, at: game.t });
+  const a = game.audio;
+  const token = ++a.token;
+  Object.assign(a, { stage, speaking: true, at: game.t + 10 });
+  say(digits.map((d) => DIGIT_WORDS[d]).join(', '), () => {
+    if (game && game.audio === a && a.token === token && a.speaking) sequenceDone();
+  });
+}
+
+function sequenceDone() {
+  const a = game.audio;
+  a.speaking = false;
+  if (a.stage === 'first') { a.stage = 'pause'; a.at = game.t + AUDIO_PAUSE; }
+  else { a.stage = 'answer'; a.at = game.t + AUDIO_ANSWER; }
 }
 
 function updateAudio() {
@@ -387,35 +399,11 @@ function updateAudio() {
     startSequence('second', a.second);
   } else if (a.stage === 'answer' && t >= a.at) {
     finishAudioTrial();
-  } else if (a.stage === 'first' || a.stage === 'second') {
-    if (a.speaking && t >= a.at) {
-      // Safety net in case the browser never reports the end of speech.
-      speech?.cancel();
-      digitDone();
-    } else if (!a.speaking && t >= a.at) {
-      if (a.idx < a.digits.length) {
-        const token = ++a.token;
-        a.speaking = true;
-        a.at = t + 5;
-        say(DIGIT_WORDS[a.digits[a.idx]], () => {
-          if (game && game.audio === a && a.token === token && a.speaking) digitDone();
-        });
-      } else if (a.stage === 'first') {
-        a.stage = 'pause';
-        a.at = t + AUDIO_PAUSE;
-      } else {
-        a.stage = 'answer';
-        a.at = t + AUDIO_ANSWER;
-      }
-    }
+  } else if ((a.stage === 'first' || a.stage === 'second') && t >= a.at) {
+    // Safety net in case the browser never reports the end of speech.
+    speech?.cancel();
+    sequenceDone();
   }
-}
-
-function digitDone() {
-  const a = game.audio;
-  a.speaking = false;
-  a.idx += 1;
-  a.at = game.t + DIGIT_GAP;
 }
 
 function finishAudioTrial() {

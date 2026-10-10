@@ -42,7 +42,7 @@ alone.
 - **Colours:** every now and then a colour pattern, for example "2 red,
   1 blue", is shown for 8 seconds. Press `Space` when the row of six squares
   at the top has exactly that many of those colours, in any order.
-- **Numbers:** a voice slowly reads four digits in English, then four more.
+- **Numbers:** a voice reads four digits in English, then four more.
   Press `Space` if the second sequence is the first one reversed.
 
 All three tasks use `Space`. One press answers everything that is open at
