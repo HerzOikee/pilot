@@ -11,7 +11,6 @@
 
   <div id="hud" hidden>
     <span id="hud-time">0:00</span>
-    <span id="hud-target"></span>
     <span class="hint">Esc = pause</span>
   </div>
 
@@ -23,13 +22,13 @@
 
       <div class="tasks">
         <label class="check"><input type="checkbox" id="task-balance" checked>
-          <span><b>Balance</b> Keep the square standing on its corner by moving the mouse left and right.</span></label>
+          <span><b>Balance</b> Keep the square upright on its corner by moving the mouse left and right.</span></label>
         <label class="check"><input type="checkbox" id="task-towers" checked>
-          <span><b>Towers</b> Press <kbd>Space</kbd> when a red square turns towards the middle.</span></label>
+          <span><b>Towers</b> Press <kbd>Space</kbd> when the red square turns towards the middle.</span></label>
         <label class="check"><input type="checkbox" id="task-colors" checked>
-          <span><b>Colours</b> Press <kbd>Space</kbd> when the top row has exactly the colours you were given.</span></label>
+          <span><b>Colours</b> A colour pattern is shown for a few seconds now and then. Press <kbd>Space</kbd> when the top row has exactly those colours.</span></label>
         <label class="check"><input type="checkbox" id="task-audio" checked>
-          <span><b>Numbers</b> Press <kbd>Enter</kbd> when the second sequence is the first one reversed.</span></label>
+          <span><b>Numbers</b> A voice reads four digits, then four more. Press <kbd>Space</kbd> if the second is the first one reversed.</span></label>
       </div>
 
       <div class="grid">
@@ -54,7 +53,6 @@
             <button id="test-voice" type="button">Test</button>
           </span>
         </label>
-        <label class="check"><input type="checkbox" id="opt-show-target"> Keep colour target visible</label>
         <label class="check"><input type="checkbox" id="opt-invert"> Invert mouse</label>
         <label class="check"><input type="checkbox" id="opt-feedback" checked> Show hits and misses</label>
       </div>
@@ -69,9 +67,7 @@
 
   <div id="briefing" class="overlay" hidden>
     <div class="panel small">
-      <h2>Your colour pattern</h2>
-      <div id="briefing-target" class="target"></div>
-      <p class="lead">Press <kbd>Space</kbd> whenever the top row has exactly these colours, in any order.</p>
+      <h2>Get ready</h2>
       <div id="briefing-count" class="count"></div>
     </div>
   </div>

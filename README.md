@@ -33,16 +33,17 @@ Four tasks at once. Each one can be turned off in the menu to practise it
 alone.
 
 - **Balance:** a two-coloured square stands on one corner and keeps tipping
-  over. Move the mouse left or right (the bar below the square shows where)
-  towards the side it tips to, to keep it upright.
-- **Towers:** red squares run down the towers on both sides. Sometimes one
-  turns towards the middle at the halfway point. Press `Space` when it does.
-- **Colours:** you get a colour pattern at the start, for example "2 red,
-  1 blue". Press `Space` when the row at the top has exactly that many of
-  those colours, in any order.
-- **Numbers:** a Finnish voice reads four digits, then four more. Press
-  `Enter` if the second sequence is the first one reversed.
+  to the side, turning around its centre. Move the mouse left or right (the
+  bar below the square shows where) towards the side it tips to, to keep it
+  upright.
+- **Towers:** one red square at a time runs down a tower on either side.
+  Sometimes it turns towards the middle at the halfway point. Press `Space`
+  when it does.
+- **Colours:** every now and then a colour pattern, for example "2 red,
+  1 blue", is shown for 8 seconds. Press `Space` when the row of six squares
+  at the top has exactly that many of those colours, in any order.
+- **Numbers:** a voice slowly reads four digits in English, then four more.
+  Press `Space` if the second sequence is the first one reversed.
 
-The voice uses the browser's built-in speech. Microsoft Edge has Finnish
-voices built in. Chrome on Windows has one only if Finnish is added in the
-Windows language settings.
+All three tasks use `Space`. One press answers everything that is open at
+that moment. The voice uses the browser's built-in speech.
