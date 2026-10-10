@@ -18,7 +18,7 @@
   <div id="menu" class="overlay">
     <div class="panel">
       <h1>Bird Game</h1>
-      <p class="lead">Keep the dot inside the circle and keep the wings level.</p>
+      <p class="lead">Keep the dot inside the circle, keep the wings level and keep the speed vector hidden.</p>
 
       <div class="grid">
         <label>Duration
@@ -39,7 +39,14 @@
         <label>Wings controlled by
           <select id="opt-roll"></select>
         </label>
+        <label>Speed controlled by
+          <select id="opt-speed"></select>
+        </label>
+        <label class="wide">Wing sensitivity <span id="opt-sensitivity-value"></span>
+          <input type="range" id="opt-sensitivity" min="0.5" max="5" step="0.1">
+        </label>
         <label class="check"><input type="checkbox" id="opt-invert"> Invert up/down</label>
+        <label class="check"><input type="checkbox" id="opt-invert-speed"> Invert speed control</label>
         <label class="check"><input type="checkbox" id="opt-live" checked> Show live score</label>
       </div>
 
@@ -47,7 +54,7 @@
       <div id="axes" class="axes"></div>
 
       <p class="keys">Keyboard: <kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd> move the circle,
-        <kbd>Q</kbd>/<kbd>E</kbd> tilt the wings.</p>
+        <kbd>Q</kbd>/<kbd>E</kbd> tilt the wings, <kbd>W</kbd>/<kbd>S</kbd> change the speed.</p>
 
       <button id="start" class="primary">Start</button>
 

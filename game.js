@@ -8,16 +8,21 @@ const W = 1600;
 const H = 1000;
 
 // Speeds are in arena pixels per second, angles in degrees (per second).
+// Wing values are multiplied by the "wing sensitivity" setting.
+// speedDrift is how fast the speed target wanders, in throttle units per second.
 const DIFFICULTY = {
-  easy:   { dotSpeed: 60,  dotTurn: 1.0, radius: 90, moveSpeed: 450, rollNoise: 20, rollDiverge: 0.0, rollRate: 70 },
-  normal: { dotSpeed: 100, dotTurn: 1.6, radius: 75, moveSpeed: 500, rollNoise: 35, rollDiverge: 0.3, rollRate: 80 },
-  hard:   { dotSpeed: 150, dotTurn: 2.4, radius: 60, moveSpeed: 550, rollNoise: 55, rollDiverge: 0.6, rollRate: 90 },
+  easy:   { dotSpeed: 60,  dotTurn: 1.0, radius: 90, moveSpeed: 450, rollNoise: 20, rollDiverge: 0.0, rollRate: 70, speedDrift: 0.15 },
+  normal: { dotSpeed: 100, dotTurn: 1.6, radius: 75, moveSpeed: 500, rollNoise: 35, rollDiverge: 0.3, rollRate: 80, speedDrift: 0.25 },
+  hard:   { dotSpeed: 150, dotTurn: 2.4, radius: 60, moveSpeed: 550, rollNoise: 55, rollDiverge: 0.6, rollRate: 90, speedDrift: 0.4 },
 };
 
 const WING_LENGTH = 70;     // how far each wing sticks out past the circle
 const LEVEL_TOLERANCE = 5;  // wings count as level within ±this many degrees
 const DEADZONE = 0.08;
 const EDGE_MARGIN = 140;    // the dot starts turning back this close to the edge
+const SPEED_SCALE = 160;    // speed vector length in pixels for a full-range error
+const SPEED_HIDDEN = 0.03;  // speed errors smaller than this draw no vector
+const KEY_THROTTLE_RATE = 0.8; // how fast W / S move the keyboard throttle
 
 // ---- DOM -----------------------------------------------------------------
 
@@ -30,7 +35,9 @@ const ui = {
   hud: $('hud'), hudTime: $('hud-time'), hudLive: $('hud-live'),
   countdown: $('countdown'), resultsBody: $('results-body'),
   duration: $('opt-duration'), difficulty: $('opt-difficulty'),
-  roll: $('opt-roll'), invert: $('opt-invert'), live: $('opt-live'),
+  roll: $('opt-roll'), speed: $('opt-speed'), invert: $('opt-invert'),
+  invertSpeed: $('opt-invert-speed'), live: $('opt-live'),
+  sensitivity: $('opt-sensitivity'), sensitivityValue: $('opt-sensitivity-value'),
   padStatus: $('pad-status'), axes: $('axes'), history: $('history'),
 };
 
@@ -44,7 +51,8 @@ function save(key, value) {
 }
 
 const settings = Object.assign(
-  { duration: '120', difficulty: 'normal', roll: 'auto', invert: false, live: true },
+  { duration: '120', difficulty: 'normal', roll: 'auto', speed: '6', invert: false,
+    invertSpeed: false, live: true, sensitivity: '2.5' },
   load('bird.settings', {}),
 );
 let history = load('bird.history', []);
@@ -52,19 +60,27 @@ let history = load('bird.history', []);
 ui.duration.value = settings.duration;
 ui.difficulty.value = settings.difficulty;
 ui.invert.checked = settings.invert;
+ui.invertSpeed.checked = settings.invertSpeed;
 ui.live.checked = settings.live;
+ui.sensitivity.value = settings.sensitivity;
+ui.sensitivityValue.textContent = `${Number(settings.sensitivity).toFixed(1)}×`;
 
 function readSettings() {
   settings.duration = ui.duration.value;
   settings.difficulty = ui.difficulty.value;
   settings.roll = ui.roll.value;
+  settings.speed = ui.speed.value;
   settings.invert = ui.invert.checked;
+  settings.invertSpeed = ui.invertSpeed.checked;
   settings.live = ui.live.checked;
+  settings.sensitivity = ui.sensitivity.value;
+  ui.sensitivityValue.textContent = `${Number(settings.sensitivity).toFixed(1)}×`;
   save('bird.settings', settings);
 }
-for (const el of [ui.duration, ui.difficulty, ui.roll, ui.invert, ui.live]) {
+for (const el of [ui.duration, ui.difficulty, ui.roll, ui.speed, ui.invert, ui.invertSpeed, ui.live]) {
   el.addEventListener('change', readSettings);
 }
+ui.sensitivity.addEventListener('input', readSettings);
 
 // ---- Input ---------------------------------------------------------------
 
@@ -100,9 +116,17 @@ function rollAxisIndex(pad) {
   return Number(r);
 }
 
-// Returns { x, y, roll } each in -1..1.
-function readInput() {
-  let x = 0, y = 0, roll = 0;
+// The speed control is a throttle lever: it stays where it is put, so its
+// position is used directly. On the keyboard, W / S slide a virtual lever.
+let keyThrottle = 0;
+
+function speedAxisIndex() {
+  return settings.speed === 'keyboard' ? -1 : Number(settings.speed);
+}
+
+// Returns { x, y, roll, throttle } each in -1..1.
+function readInput(dt = 0) {
+  let x = 0, y = 0, roll = 0, throttle = 0;
   const pad = getPad();
 
   if (pad && settings.roll !== 'keyboard') {
@@ -113,6 +137,17 @@ function readInput() {
     else if (ri >= 0 && ri < pad.axes.length) roll = deadzone(pad.axes[ri]);
   }
 
+  const si = speedAxisIndex();
+  if (pad && si >= 0 && si < pad.axes.length) {
+    throttle = pad.axes[si];
+  } else {
+    if (keys.has('KeyW')) keyThrottle += KEY_THROTTLE_RATE * dt;
+    if (keys.has('KeyS')) keyThrottle -= KEY_THROTTLE_RATE * dt;
+    keyThrottle = Math.max(-1, Math.min(1, keyThrottle));
+    throttle = keyThrottle;
+  }
+  if (settings.invertSpeed) throttle = -throttle;
+
   if (keys.has('ArrowLeft')) x -= 1;
   if (keys.has('ArrowRight')) x += 1;
   if (keys.has('ArrowUp')) y -= 1;
@@ -122,7 +157,7 @@ function readInput() {
 
   if (settings.invert) y = -y;
   const clamp = (v) => Math.max(-1, Math.min(1, v));
-  return { x: clamp(x), y: clamp(y), roll: clamp(roll) };
+  return { x: clamp(x), y: clamp(y), roll: clamp(roll), throttle: clamp(throttle) };
 }
 
 // Rebuild the "wings controlled by" list when a joystick connects, and
@@ -139,6 +174,14 @@ function refreshPadUI() {
     opts.push(['keyboard', 'Keyboard only (Q / E)']);
     ui.roll.innerHTML = opts.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
     ui.roll.value = opts.some(([v]) => v === settings.roll) ? settings.roll : 'auto';
+
+    // Always offer axis 6, the throttle on many flight sticks, even before
+    // a joystick is detected, so the saved choice survives.
+    const speedOpts = [];
+    for (let i = 2; i < Math.max(count, 7); i++) speedOpts.push([String(i), `Joystick axis ${i}`]);
+    speedOpts.push(['keyboard', 'Keyboard only (W / S)']);
+    ui.speed.innerHTML = speedOpts.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
+    ui.speed.value = speedOpts.some(([v]) => v === settings.speed) ? settings.speed : 'keyboard';
 
     ui.axes.innerHTML = '';
     for (let i = 0; i < count; i++) {
@@ -158,7 +201,7 @@ function refreshPadUI() {
       bar.style.left = `${50 + Math.min(0, v) * 50}%`;
       bar.style.width = `${Math.abs(v) * 50}%`;
       row.querySelector('.v').textContent = v.toFixed(2);
-      row.classList.toggle('roll', i === ri);
+      row.classList.toggle('roll', i === ri || i === speedAxisIndex());
     });
   } else {
     ui.padStatus.textContent = 'No joystick detected. Plug one in and press any button on it.';
@@ -181,13 +224,16 @@ function newGame() {
     player: { x: W / 2, y: H / 2 },
     roll: 0,          // degrees, positive = right wing down
     rollDisturb: 0,   // degrees per second of random lean
-    stats: { inside: 0, level: 0, both: 0, rollSum: 0, distSum: 0, time: 0 },
+    speedTarget: null, // throttle position that hides the speed vector
+    speedTargetVel: 0,
+    speedError: 0,
+    stats: { inside: 0, level: 0, speed: 0, all: 0, rollSum: 0, distSum: 0, time: 0 },
   };
 }
 
 function update(dt) {
   const g = game;
-  const input = readInput();
+  const input = readInput(dt);
 
   // Dot: wanders with a slowly changing turn rate, steering back from edges.
   const d = g.dot;
@@ -218,18 +264,36 @@ function update(dt) {
   g.rollDisturb += (Math.random() * 2 - 1) * cfg.rollNoise * 3 * dt;
   g.rollDisturb *= 1 - 0.4 * dt;
   g.rollDisturb = Math.max(-cfg.rollNoise, Math.min(cfg.rollNoise, g.rollDisturb));
-  g.roll += (g.rollDisturb + g.roll * cfg.rollDiverge + input.roll * cfg.rollRate) * dt;
+  // Sensitivity speeds up everything about the wings: the random lean and
+  // the response to the joystick.
+  const sens = Number(settings.sensitivity);
+  g.roll += (g.rollDisturb + g.roll * cfg.rollDiverge + input.roll * cfg.rollRate) * sens * dt;
   g.roll = Math.max(-80, Math.min(80, g.roll));
+
+  // Speed: the throttle position that hides the vector wanders up and down.
+  // It starts wherever the throttle is, so the vector starts hidden.
+  if (g.speedTarget === null) g.speedTarget = Math.max(-0.9, Math.min(0.9, input.throttle));
+  g.speedTargetVel += (Math.random() * 2 - 1) * cfg.speedDrift * 4 * dt;
+  g.speedTargetVel *= 1 - 0.8 * dt;
+  g.speedTargetVel = Math.max(-cfg.speedDrift, Math.min(cfg.speedDrift, g.speedTargetVel));
+  g.speedTarget += g.speedTargetVel * dt;
+  if (Math.abs(g.speedTarget) > 0.9) {
+    g.speedTarget = Math.sign(g.speedTarget) * 0.9;
+    g.speedTargetVel = -g.speedTargetVel;
+  }
+  g.speedError = input.throttle - g.speedTarget;
 
   // Scoring.
   const dist = Math.hypot(d.x - p.x, d.y - p.y);
   const inside = dist <= cfg.radius;
   const level = Math.abs(g.roll) <= LEVEL_TOLERANCE;
+  const speedOk = Math.abs(g.speedError) <= SPEED_HIDDEN;
   const s = g.stats;
   s.time += dt;
   if (inside) s.inside += dt;
   if (level) s.level += dt;
-  if (inside && level) s.both += dt;
+  if (speedOk) s.speed += dt;
+  if (inside && level && speedOk) s.all += dt;
   s.rollSum += Math.abs(g.roll) * dt;
   s.distSum += dist * dt;
 
@@ -294,6 +358,18 @@ function draw() {
   ctx.moveTo(cfg.radius, 0);
   ctx.lineTo(cfg.radius + WING_LENGTH, 0);
   ctx.stroke();
+
+  // Speed vector: sticks up or down from the right wing tip. Hidden when
+  // the speed is right.
+  if (Math.abs(game.speedError) > SPEED_HIDDEN) {
+    const tip = cfg.radius + WING_LENGTH;
+    ctx.strokeStyle = '#ffd34d';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(tip, 0);
+    ctx.lineTo(tip, -game.speedError * SPEED_SCALE);
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
@@ -348,11 +424,12 @@ function finish() {
     duration: game.duration,
     inside: pct(s.inside, s.time),
     level: pct(s.level, s.time),
-    both: pct(s.both, s.time),
+    speed: pct(s.speed, s.time),
+    all: pct(s.all, s.time),
     avgRoll: s.time ? s.rollSum / s.time : 0,
     avgDist: s.time ? s.distSum / s.time : 0,
   };
-  result.score = Math.round((result.inside + result.level) / 2);
+  result.score = Math.round((result.inside + result.level + result.speed) / 3);
   history = [result, ...history].slice(0, 20);
   save('bird.history', history);
 
@@ -360,7 +437,8 @@ function finish() {
     <div class="score">${result.score}</div>
     <div class="stat"><span>Dot inside circle</span><b>${result.inside}%</b></div>
     <div class="stat"><span>Wings level (±${LEVEL_TOLERANCE}°)</span><b>${result.level}%</b></div>
-    <div class="stat"><span>Both at once</span><b>${result.both}%</b></div>
+    <div class="stat"><span>Speed vector hidden</span><b>${result.speed}%</b></div>
+    <div class="stat"><span>All three at once</span><b>${result.all}%</b></div>
     <div class="stat"><span>Average wing tilt</span><b>${result.avgRoll.toFixed(1)}°</b></div>
     <div class="stat"><span>Average distance from dot</span><b>${Math.round(result.avgDist)} px</b></div>`;
   show(ui.results, true);
@@ -370,9 +448,9 @@ function renderHistory() {
   if (!history.length) { ui.history.innerHTML = ''; return; }
   const rows = history.slice(0, 8).map((r) => `
     <tr><td>${new Date(r.date).toLocaleDateString()}</td><td>${r.difficulty}</td>
-    <td>${r.duration / 60} min</td><td>${r.inside}%</td><td>${r.level}%</td><td><b>${r.score}</b></td></tr>`).join('');
+    <td>${r.duration / 60} min</td><td>${r.inside}%</td><td>${r.level}%</td><td>${r.speed ?? '–'}${r.speed == null ? '' : '%'}</td><td><b>${r.score}</b></td></tr>`).join('');
   ui.history.innerHTML = `<h3>Recent results</h3><table>
-    <tr><th>Date</th><th>Level</th><th>Time</th><th>Dot</th><th>Wings</th><th>Score</th></tr>${rows}</table>`;
+    <tr><th>Date</th><th>Level</th><th>Time</th><th>Dot</th><th>Wings</th><th>Speed</th><th>Score</th></tr>${rows}</table>`;
 }
 
 function updateHud() {
@@ -382,7 +460,7 @@ function updateHud() {
   ui.hudTime.textContent = `${m}:${sec}`;
   const s = game.stats;
   ui.hudLive.textContent = settings.live && s.time > 0
-    ? `Dot ${pct(s.inside, s.time)}%  ·  Wings ${pct(s.level, s.time)}%`
+    ? `Dot ${pct(s.inside, s.time)}%  ·  Wings ${pct(s.level, s.time)}%  ·  Speed ${pct(s.speed, s.time)}%`
     : '';
 }
 
