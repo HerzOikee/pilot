@@ -8,7 +8,8 @@ const W = 1600;
 const H = 1000;
 
 // Speeds are in arena pixels per second, angles in degrees (per second).
-// Wing values are scaled by the "wing sensitivity" setting (see update()).
+// rollRate is scaled by the "wing sensitivity" setting, rollNoise and
+// rollDiverge by LEAN_SPEED.
 // speedDrift is how fast the speed target wanders, in throttle units per second.
 const DIFFICULTY = {
   easy:   { dotSpeed: 60,  dotTurn: 1.0, radius: 90, moveSpeed: 450, rollNoise: 20, rollDiverge: 0.0, rollRate: 70, speedDrift: 0.15 },
@@ -16,7 +17,8 @@ const DIFFICULTY = {
   hard:   { dotSpeed: 150, dotTurn: 2.4, radius: 60, moveSpeed: 550, rollNoise: 55, rollDiverge: 0.6, rollRate: 90, speedDrift: 0.4 },
 };
 
-const WING_LENGTH = 70;     // how far each wing sticks out past the circle
+const LEAN_SPEED = 1.5;     // multiplier on how fast the wings lean by themselves
+const WING_LENGTH = 70;    // how far each wing sticks out past the circle
 const LEVEL_TOLERANCE = 5;  // wings count as level within ±this many degrees
 const DEADZONE = 0.08;
 const EDGE_MARGIN = 140;    // the dot starts turning back this close to the edge
@@ -264,12 +266,10 @@ function update(dt) {
   g.rollDisturb += (Math.random() * 2 - 1) * cfg.rollNoise * 3 * dt;
   g.rollDisturb *= 1 - 0.4 * dt;
   g.rollDisturb = Math.max(-cfg.rollNoise, Math.min(cfg.rollNoise, g.rollDisturb));
-  // Sensitivity sets how fast the wings answer the joystick. It speeds up
-  // the random lean only half as much, so the joystick stays stronger than
-  // the lean and a partial push is enough to level the wings.
+  // The sensitivity setting sets how fast the wings answer the joystick.
+  // The random lean has its own fixed speed.
   const sens = Number(settings.sensitivity);
-  const leanSens = 1 + (sens - 1) / 2;
-  g.roll += ((g.rollDisturb + g.roll * cfg.rollDiverge) * leanSens + input.roll * cfg.rollRate * sens) * dt;
+  g.roll += ((g.rollDisturb + g.roll * cfg.rollDiverge) * LEAN_SPEED + input.roll * cfg.rollRate * sens) * dt;
   g.roll = Math.max(-80, Math.min(80, g.roll));
 
   // Speed: the throttle position that hides the vector wanders up and down.
