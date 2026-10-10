@@ -74,6 +74,7 @@ const ui = {
   resultsBody: $('results-body'), history: $('history'),
   duration: $('opt-duration'), difficulty: $('opt-difficulty'), voice: $('opt-voice'),
   invert: $('opt-invert'), feedback: $('opt-feedback'), voiceWarning: $('voice-warning'),
+  voiceRate: $('opt-voice-rate'), voiceRateValue: $('opt-voice-rate-value'),
   tasks: { balance: $('task-balance'), towers: $('task-towers'), colors: $('task-colors'), audio: $('task-audio') },
 };
 
@@ -87,7 +88,7 @@ function save(key, value) {
 }
 
 const settings = Object.assign(
-  { duration: '180', difficulty: 'normal', voice: '', invert: false, feedback: true,
+  { duration: '180', difficulty: 'normal', voice: '', voiceRate: '1.4', invert: false, feedback: true,
     tasks: { balance: true, towers: true, colors: true, audio: true } },
   load('fourInOne.settings', {}),
 );
@@ -97,6 +98,8 @@ ui.duration.value = settings.duration;
 ui.difficulty.value = settings.difficulty;
 ui.invert.checked = settings.invert;
 ui.feedback.checked = settings.feedback;
+ui.voiceRate.value = settings.voiceRate;
+ui.voiceRateValue.textContent = `${Number(settings.voiceRate).toFixed(1)}×`;
 for (const k in ui.tasks) ui.tasks[k].checked = settings.tasks[k] !== false;
 
 function readSettings() {
@@ -105,12 +108,15 @@ function readSettings() {
   settings.voice = ui.voice.value;
   settings.invert = ui.invert.checked;
   settings.feedback = ui.feedback.checked;
+  settings.voiceRate = ui.voiceRate.value;
+  ui.voiceRateValue.textContent = `${Number(settings.voiceRate).toFixed(1)}×`;
   for (const k in ui.tasks) settings.tasks[k] = ui.tasks[k].checked;
   save('fourInOne.settings', settings);
 }
 for (const el of [ui.duration, ui.difficulty, ui.voice, ui.invert, ui.feedback, ...Object.values(ui.tasks)]) {
   el.addEventListener('change', readSettings);
 }
+ui.voiceRate.addEventListener('input', readSettings);
 
 // ---- Voice ---------------------------------------------------------------
 
@@ -147,7 +153,7 @@ function say(text, onDone) {
   const voice = selectedVoice();
   if (voice) u.voice = voice;
   u.lang = voice ? voice.lang : 'en-US';
-  u.rate = 0.9;
+  u.rate = Number(settings.voiceRate);
   u.onend = onDone;
   u.onerror = onDone;
   speech.speak(u);
@@ -156,7 +162,7 @@ function say(text, onDone) {
 $('test-voice').addEventListener('click', () => {
   if (!speech) return;
   speech.cancel();
-  say('one, two, three, four', () => {});
+  say('one two three four', () => {});
 });
 
 // ---- Input ---------------------------------------------------------------
@@ -376,7 +382,7 @@ function startSequence(stage, digits) {
   const a = game.audio;
   const token = ++a.token;
   Object.assign(a, { stage, speaking: true, at: game.t + 10 });
-  say(digits.map((d) => DIGIT_WORDS[d]).join(', '), () => {
+  say(digits.map((d) => DIGIT_WORDS[d]).join(' '), () => {
     if (game && game.audio === a && a.token === token && a.speaking) sequenceDone();
   });
 }
