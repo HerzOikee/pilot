@@ -8,7 +8,7 @@ const W = 1600;
 const H = 1000;
 
 // Speeds are in arena pixels per second, angles in degrees (per second).
-// Wing values are multiplied by the "wing sensitivity" setting.
+// Wing values are scaled by the "wing sensitivity" setting (see update()).
 // speedDrift is how fast the speed target wanders, in throttle units per second.
 const DIFFICULTY = {
   easy:   { dotSpeed: 60,  dotTurn: 1.0, radius: 90, moveSpeed: 450, rollNoise: 20, rollDiverge: 0.0, rollRate: 70, speedDrift: 0.15 },
@@ -52,7 +52,7 @@ function save(key, value) {
 
 const settings = Object.assign(
   { duration: '120', difficulty: 'normal', roll: 'auto', speed: '6', invert: false,
-    invertSpeed: false, live: true, sensitivity: '2.5' },
+    invertSpeed: false, live: true, sensitivity: '3.5' },
   load('bird.settings', {}),
 );
 let history = load('bird.history', []);
@@ -264,10 +264,12 @@ function update(dt) {
   g.rollDisturb += (Math.random() * 2 - 1) * cfg.rollNoise * 3 * dt;
   g.rollDisturb *= 1 - 0.4 * dt;
   g.rollDisturb = Math.max(-cfg.rollNoise, Math.min(cfg.rollNoise, g.rollDisturb));
-  // Sensitivity speeds up everything about the wings: the random lean and
-  // the response to the joystick.
+  // Sensitivity sets how fast the wings answer the joystick. It speeds up
+  // the random lean only half as much, so the joystick stays stronger than
+  // the lean and a partial push is enough to level the wings.
   const sens = Number(settings.sensitivity);
-  g.roll += (g.rollDisturb + g.roll * cfg.rollDiverge + input.roll * cfg.rollRate) * sens * dt;
+  const leanSens = 1 + (sens - 1) / 2;
+  g.roll += ((g.rollDisturb + g.roll * cfg.rollDiverge) * leanSens + input.roll * cfg.rollRate * sens) * dt;
   g.roll = Math.max(-80, Math.min(80, g.roll));
 
   // Speed: the throttle position that hides the vector wanders up and down.
