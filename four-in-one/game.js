@@ -75,6 +75,7 @@ const ui = {
   duration: $('opt-duration'), difficulty: $('opt-difficulty'), voice: $('opt-voice'),
   invert: $('opt-invert'), feedback: $('opt-feedback'), voiceWarning: $('voice-warning'),
   voiceRate: $('opt-voice-rate'), voiceRateValue: $('opt-voice-rate-value'),
+  digitGap: $('opt-digit-gap'), digitGapValue: $('opt-digit-gap-value'),
   tasks: { balance: $('task-balance'), towers: $('task-towers'), colors: $('task-colors'), audio: $('task-audio') },
 };
 
@@ -88,7 +89,7 @@ function save(key, value) {
 }
 
 const settings = Object.assign(
-  { duration: '180', difficulty: 'normal', voice: '', voiceRate: '1.4', invert: false, feedback: true,
+  { duration: '180', difficulty: 'normal', voice: '', voiceRate: '1.4', digitGap: '0.4', invert: false, feedback: true,
     tasks: { balance: true, towers: true, colors: true, audio: true } },
   load('fourInOne.settings', {}),
 );
@@ -99,7 +100,13 @@ ui.difficulty.value = settings.difficulty;
 ui.invert.checked = settings.invert;
 ui.feedback.checked = settings.feedback;
 ui.voiceRate.value = settings.voiceRate;
-ui.voiceRateValue.textContent = `${Number(settings.voiceRate).toFixed(1)}×`;
+ui.digitGap.value = settings.digitGap;
+showVoiceValues();
+
+function showVoiceValues() {
+  ui.voiceRateValue.textContent = `${Number(settings.voiceRate).toFixed(1)}×`;
+  ui.digitGapValue.textContent = `${Number(settings.digitGap).toFixed(1)} s`;
+}
 for (const k in ui.tasks) ui.tasks[k].checked = settings.tasks[k] !== false;
 
 function readSettings() {
@@ -109,7 +116,8 @@ function readSettings() {
   settings.invert = ui.invert.checked;
   settings.feedback = ui.feedback.checked;
   settings.voiceRate = ui.voiceRate.value;
-  ui.voiceRateValue.textContent = `${Number(settings.voiceRate).toFixed(1)}×`;
+  settings.digitGap = ui.digitGap.value;
+  showVoiceValues();
   for (const k in ui.tasks) settings.tasks[k] = ui.tasks[k].checked;
   save('fourInOne.settings', settings);
 }
@@ -117,6 +125,7 @@ for (const el of [ui.duration, ui.difficulty, ui.voice, ui.invert, ui.feedback, 
   el.addEventListener('change', readSettings);
 }
 ui.voiceRate.addEventListener('input', readSettings);
+ui.digitGap.addEventListener('input', readSettings);
 
 // ---- Voice ---------------------------------------------------------------
 
@@ -159,10 +168,19 @@ function say(text, onDone) {
   speech.speak(u);
 }
 
+// Reads 1 2 3 4 with the chosen speed and pause, as in the game.
+let testTimer = null;
+let testRun = 0;
 $('test-voice').addEventListener('click', () => {
   if (!speech) return;
   speech.cancel();
-  say('one, two, three, four', () => {});
+  clearTimeout(testTimer);
+  const run = ++testRun;
+  const next = (i) => {
+    if (i > 4 || run !== testRun) return;
+    say(DIGIT_WORDS[i], () => { testTimer = setTimeout(() => next(i + 1), Number(settings.digitGap) * 1000); });
+  };
+  next(1);
 });
 
 // ---- Input ---------------------------------------------------------------
@@ -377,21 +395,16 @@ function newSequences() {
   return { first, second, isReversed: false };
 }
 
-// Reads all four digits in one go and moves on when the voice finishes.
+// Reads the digits one at a time, with a pause after each one.
 function startSequence(stage, digits) {
-  const a = game.audio;
-  const token = ++a.token;
-  Object.assign(a, { stage, speaking: true, at: game.t + 10 });
-  say(digits.map((d) => DIGIT_WORDS[d]).join(', '), () => {
-    if (game && game.audio === a && a.token === token && a.speaking) sequenceDone();
-  });
+  Object.assign(game.audio, { stage, digits, idx: 0, speaking: false, at: game.t });
 }
 
-function sequenceDone() {
+function digitDone() {
   const a = game.audio;
   a.speaking = false;
-  if (a.stage === 'first') { a.stage = 'pause'; a.at = game.t + AUDIO_PAUSE; }
-  else { a.stage = 'answer'; a.at = game.t + AUDIO_ANSWER; }
+  a.idx += 1;
+  a.at = game.t + Number(settings.digitGap);
 }
 
 function updateAudio() {
@@ -406,9 +419,24 @@ function updateAudio() {
   } else if (a.stage === 'answer' && t >= a.at) {
     finishAudioTrial();
   } else if ((a.stage === 'first' || a.stage === 'second') && t >= a.at) {
-    // Safety net in case the browser never reports the end of speech.
-    speech?.cancel();
-    sequenceDone();
+    if (a.speaking) {
+      // Safety net in case the browser never reports the end of speech.
+      speech?.cancel();
+      digitDone();
+    } else if (a.idx < a.digits.length) {
+      const token = ++a.token;
+      a.speaking = true;
+      a.at = t + 5;
+      say(DIGIT_WORDS[a.digits[a.idx]], () => {
+        if (game && game.audio === a && a.token === token && a.speaking) digitDone();
+      });
+    } else if (a.stage === 'first') {
+      a.stage = 'pause';
+      a.at = t + AUDIO_PAUSE;
+    } else {
+      a.stage = 'answer';
+      a.at = t + AUDIO_ANSWER;
+    }
   }
 }
 

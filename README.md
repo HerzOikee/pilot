@@ -46,4 +46,4 @@ alone.
   Press `Space` if the second sequence is the first one reversed.
 
 All three tasks use `Space`. One press answers everything that is open at
-that moment. The voice uses the browser's built-in speech. Set how fast it reads with the Reading speed slider in the menu.
+that moment. The voice uses the browser's built-in speech. Set how fast it reads and the pause between digits with the sliders in the menu.
