@@ -162,7 +162,7 @@ function say(text, onDone) {
 $('test-voice').addEventListener('click', () => {
   if (!speech) return;
   speech.cancel();
-  say('one two three four', () => {});
+  say('one, two, three, four', () => {});
 });
 
 // ---- Input ---------------------------------------------------------------
@@ -382,7 +382,7 @@ function startSequence(stage, digits) {
   const a = game.audio;
   const token = ++a.token;
   Object.assign(a, { stage, speaking: true, at: game.t + 10 });
-  say(digits.map((d) => DIGIT_WORDS[d]).join(' '), () => {
+  say(digits.map((d) => DIGIT_WORDS[d]).join(', '), () => {
     if (game && game.audio === a && a.token === token && a.speaking) sequenceDone();
   });
 }
