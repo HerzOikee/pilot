@@ -12,9 +12,10 @@ const H = 1000;
 // rollDiverge by LEAN_SPEED.
 // speedDrift is how fast the speed target wanders, in throttle units per second.
 const DIFFICULTY = {
-  easy:   { dotSpeed: 60,  dotTurn: 1.0, radius: 90, moveSpeed: 450, rollNoise: 20, rollDiverge: 0.0, rollRate: 70, speedDrift: 0.15 },
-  normal: { dotSpeed: 100, dotTurn: 1.6, radius: 75, moveSpeed: 500, rollNoise: 35, rollDiverge: 0.3, rollRate: 80, speedDrift: 0.25 },
-  hard:   { dotSpeed: 150, dotTurn: 2.4, radius: 60, moveSpeed: 550, rollNoise: 55, rollDiverge: 0.6, rollRate: 90, speedDrift: 0.4 },
+  // Normal is meant to match the real test; Hard is the same, only harder.
+  easy:   { dotSpeed: 100, dotTurn: 1.6, radius: 75, moveSpeed: 500, rollNoise: 35, rollDiverge: 0.3, rollRate: 80,  speedDrift: 0.25 },
+  normal: { dotSpeed: 150, dotTurn: 2.4, radius: 60, moveSpeed: 550, rollNoise: 55, rollDiverge: 0.6, rollRate: 90,  speedDrift: 0.4 },
+  hard:   { dotSpeed: 200, dotTurn: 3.2, radius: 50, moveSpeed: 600, rollNoise: 75, rollDiverge: 0.9, rollRate: 100, speedDrift: 0.55 },
 };
 
 const LEAN_SPEED = 1.5;     // multiplier on how fast the wings lean by themselves
@@ -23,7 +24,6 @@ const LEVEL_TOLERANCE = 5;  // wings count as level within ±this many degrees
 const DEADZONE = 0.08;
 const EDGE_MARGIN = 140;    // the dot starts turning back this close to the edge
 const SPEED_SCALE = 160;    // speed vector length in pixels for a full-range error
-const SPEED_HIDDEN = 0.03;  // speed errors smaller than this draw no vector
 const KEY_THROTTLE_RATE = 0.8; // how fast W / S move the keyboard throttle
 
 // ---- DOM -----------------------------------------------------------------
@@ -40,6 +40,7 @@ const ui = {
   roll: $('opt-roll'), speed: $('opt-speed'), invert: $('opt-invert'),
   invertSpeed: $('opt-invert-speed'), live: $('opt-live'),
   sensitivity: $('opt-sensitivity'), sensitivityValue: $('opt-sensitivity-value'),
+  speedDeadzone: $('opt-speed-deadzone'), speedDeadzoneValue: $('opt-speed-deadzone-value'),
   padStatus: $('pad-status'), axes: $('axes'), history: $('history'),
 };
 
@@ -54,7 +55,7 @@ function save(key, value) {
 
 const settings = Object.assign(
   { duration: '120', difficulty: 'normal', roll: 'auto', speed: '6', invert: false,
-    invertSpeed: false, live: true, sensitivity: '3.5' },
+    invertSpeed: false, live: true, sensitivity: '3.5', speedDeadzone: '0.08' },
   load('bird.settings', {}),
 );
 let history = load('bird.history', []);
@@ -65,7 +66,13 @@ ui.invert.checked = settings.invert;
 ui.invertSpeed.checked = settings.invertSpeed;
 ui.live.checked = settings.live;
 ui.sensitivity.value = settings.sensitivity;
-ui.sensitivityValue.textContent = `${Number(settings.sensitivity).toFixed(1)}×`;
+ui.speedDeadzone.value = settings.speedDeadzone;
+showSliderValues();
+
+function showSliderValues() {
+  ui.sensitivityValue.textContent = `${Number(settings.sensitivity).toFixed(1)}×`;
+  ui.speedDeadzoneValue.textContent = `${Math.round(Number(settings.speedDeadzone) * 100)}% of throttle travel`;
+}
 
 function readSettings() {
   settings.duration = ui.duration.value;
@@ -76,13 +83,15 @@ function readSettings() {
   settings.invertSpeed = ui.invertSpeed.checked;
   settings.live = ui.live.checked;
   settings.sensitivity = ui.sensitivity.value;
-  ui.sensitivityValue.textContent = `${Number(settings.sensitivity).toFixed(1)}×`;
+  settings.speedDeadzone = ui.speedDeadzone.value;
+  showSliderValues();
   save('bird.settings', settings);
 }
 for (const el of [ui.duration, ui.difficulty, ui.roll, ui.speed, ui.invert, ui.invertSpeed, ui.live]) {
   el.addEventListener('change', readSettings);
 }
 ui.sensitivity.addEventListener('input', readSettings);
+ui.speedDeadzone.addEventListener('input', readSettings);
 
 // ---- Input ---------------------------------------------------------------
 
@@ -289,7 +298,7 @@ function update(dt) {
   const dist = Math.hypot(d.x - p.x, d.y - p.y);
   const inside = dist <= cfg.radius;
   const level = Math.abs(g.roll) <= LEVEL_TOLERANCE;
-  const speedOk = Math.abs(g.speedError) <= SPEED_HIDDEN;
+  const speedOk = Math.abs(g.speedError) <= Number(settings.speedDeadzone);
   const s = g.stats;
   s.time += dt;
   if (inside) s.inside += dt;
@@ -361,15 +370,17 @@ function draw() {
   ctx.lineTo(cfg.radius + WING_LENGTH, 0);
   ctx.stroke();
 
-  // Speed vector: sticks up or down from the right wing tip. Hidden when
-  // the speed is right.
-  if (Math.abs(game.speedError) > SPEED_HIDDEN) {
+  // Speed vector: sticks up or down from the right wing tip. Hidden inside
+  // the dead zone around the right speed, and grows from zero outside it.
+  const deadzone = Number(settings.speedDeadzone);
+  const speedOff = Math.sign(game.speedError) * Math.max(0, Math.abs(game.speedError) - deadzone);
+  if (speedOff !== 0) {
     const tip = cfg.radius + WING_LENGTH;
     ctx.strokeStyle = '#ffd34d';
     ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(tip, 0);
-    ctx.lineTo(tip, -game.speedError * SPEED_SCALE);
+    ctx.lineTo(tip, -speedOff * SPEED_SCALE);
     ctx.stroke();
   }
   ctx.restore();

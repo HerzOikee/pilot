@@ -19,6 +19,10 @@ wing tip as the speed wanders. Use the throttle to keep it hidden.
   (the throttle) by default.
 - **Wing sensitivity:** use the slider in the menu to match how quickly the
   wings react in the real test.
+- **Speed dead zone:** the speed vector stays hidden while the throttle is
+  this close to the right speed, so small wobbles don't show it.
+- **Difficulty:** Normal is meant to match the real test. Hard is the same
+  but faster.
 - **Keyboard:** arrow keys move the circle, `Q` / `E` tilt the wings,
   `W` / `S` change the speed.
 - `Esc` pauses.
